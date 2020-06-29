@@ -22,14 +22,14 @@ let Input = ({ ...obj } = {}, attrs = {}) => {
 }
 
 let todos = [
-  { id: 0, text: `hello0`, creationTime: Math.random() },
-  { id: 1, text: `hello1`, creationTime: Math.random() },
-  { id: 2, text: `hello2`, creationTime: Math.random() },
-  { id: 3, text: `hello3`, creationTime: Math.random() },
-  { id: 4, text: `hello4`, creationTime: Math.random() },
+  { id: 0, text: `hello0`, creationTime: Math.random(), components: [] },
+  { id: 1, text: `hello1`, creationTime: Math.random(), components: [] },
+  { id: 2, text: `hello2`, creationTime: Math.random(), components: [] },
+  { id: 3, text: `hello3`, creationTime: Math.random(), components: [] },
+  { id: 4, text: `hello4`, creationTime: Math.random(), components: [] },
 ];
 for (let i = 0; i < 1000; i++) {
-  todos.push({ id: todos.length, text: `hello${todos.length}`, creationTime: Math.random(), count: 0 });
+  todos.push({ id: todos.length, text: `hello${todos.length}`, creationTime: Math.random(), count: 0, components: [] });
 }
 let newTodoText = ``;
 
@@ -51,6 +51,9 @@ let Counter = class extends React.Component {
 }
 
 let Todo = class extends React.Component {
+  componentDidMount() {
+    this.props.todo.components.push(this);
+  }
   render() {
     let { todo } = this.props;
     return x({
@@ -67,7 +70,10 @@ let Todo = class extends React.Component {
               value: todo.text,
               onChange: (e) => {
                 todo.text = e.target.value;
-                rerender();
+                //rerender();
+                todo.components.forEach(component => { //2
+                  component.forceUpdate();
+                })
               }
             })
           ]
