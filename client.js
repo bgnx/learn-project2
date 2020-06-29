@@ -107,7 +107,7 @@ let App = () => {
           Input({
             flex: `1`,
             border: `1px solid gray`
-          }, { value: newTodoText, onChange: (e) => { newTodoText = e.target.value } }),
+          }, { value: newTodoText, onChange: (e) => { newTodoText = e.target.value; rerender(); } }),
           x({
             tag: `button`,
             marginLeft: `10px`,
