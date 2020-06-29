@@ -28,6 +28,9 @@ let todos = [
   { id: 3, text: `hello3`, creationTime: Math.random() },
   { id: 4, text: `hello4`, creationTime: Math.random() },
 ];
+for (let i = 0; i < 1000; i++) {
+  todos.push({ id: todos.length, text: `hello${todos.length}`, creationTime: Math.random(), count: 0 });
+}
 let newTodoText = ``;
 
 let Counter = class extends React.Component {
@@ -93,6 +96,8 @@ let Todo = class extends React.Component {
 
 let App = () => {
   return x({
+    flex: 1,
+    overflow: `scroll`,
     padding: `50px`,
     children: [
       x({
