@@ -22,15 +22,15 @@ let Input = ({ ...obj } = {}, attrs = {}) => {
 }
 
 let todos = [
-  { id: 0, text: `hello0`, creationTime: Math.random(), components: [] },
-  { id: 1, text: `hello1`, creationTime: Math.random(), components: [] },
-  { id: 2, text: `hello2`, creationTime: Math.random(), components: [] },
-  { id: 3, text: `hello3`, creationTime: Math.random(), components: [] },
-  { id: 4, text: `hello4`, creationTime: Math.random(), components: [] },
+  { id: 0, text: `hello0`, creationTime: Math.random(), components: [], notes: [] },
+  { id: 1, text: `hello1`, creationTime: Math.random(), components: [], notes: [] },
+  { id: 2, text: `hello2`, creationTime: Math.random(), components: [], notes: [] },
+  { id: 3, text: `hello3`, creationTime: Math.random(), components: [], notes: [] },
+  { id: 4, text: `hello4`, creationTime: Math.random(), components: [], notes: [] },
 ];
-for (let i = 0; i < 1000; i++) {
+/* for (let i = 0; i < 1000; i++) {
   todos.push({ id: todos.length, text: `hello${todos.length}`, creationTime: Math.random(), count: 0, components: [] });
-}
+} */
 let newTodoText = ``;
 
 let Counter = class extends React.Component {
@@ -50,53 +50,122 @@ let Counter = class extends React.Component {
   }
 }
 
-let Todo = class extends React.Component {
-  componentDidMount() {
-    this.props.todo.components.push(this);
-  }
+let Note = class extends React.Component {
   render() {
-    let { todo } = this.props;
+    let { note, onNoteChange } = this.props;
     return x({
-      flexDirection: `row`,
-      border: `1px solid gray`,
-      padding: `10px`,
       children: [
-        Checkbox(),
         x({
-          flex: 1,
-          marginLeft: `10px`,
+          flexDirection: `row`,
+          border: `1px solid gray`,
+          padding: `10px`,
           children: [
-            Input({}, {
-              value: todo.text,
-              onChange: (e) => {
-                todo.text = e.target.value;
-                //rerender();
-                todo.components.forEach(component => { //2
-                  component.forceUpdate();
+            x({
+              flex: 1,
+              marginLeft: `10px`,
+              children: [
+                Input({}, {
+                  value: note.text,
+                  onChange: (e) => {
+                    onNoteChange(e.target.value);
+                  }
                 })
+              ]
+            }),
+            x({ tag: Counter }),
+            x({ tag: Counter }),
+            x({
+              alignItems: `center`,
+              justifyContent: `center`,
+              border: `1px solid gray`,
+              children: `x`,
+            }, {
+              onClick: () => {
+                onNoteDelete()
               }
             })
           ]
-        }),
-        x({ tag: Counter }),
-        x({ tag: Counter }),
-        x({
-          alignItems: `center`,
-          justifyContent: `center`,
-          border: `1px solid gray`,
-          children: `x`,
-        }, {
-          onClick: () => {
-            console.log(`delete todo`, todo.id);
-            todos.splice(todos.indexOf(todo), 1);
-            rerender();
-          }
         })
       ]
     })
   }
-  componentWillUnmount() {
-    console.log(`componentWillUnmount ${this.props.todo.id}`)
+  shouldComponentUpdate(nextProps) {
+    return nextProps.note !== this.props.note;
+  }
+}
+
+let Todo = class extends React.Component {
+  render() {
+    let { todo } = this.props;
+    return x({
+      border: `1px solid gray`,
+      children: [
+        x({
+          flexDirection: `row`,
+          padding: `10px`,
+          children: [
+            Checkbox(),
+            x({
+              flex: 1,
+              marginLeft: `10px`,
+              children: [
+                Input({}, {
+                  value: todo.text,
+                  onChange: (e) => {
+                    //todo.text = e.target.value;
+                    todos[this.props.index] = { ...todo, text: e.target.value };
+                    rerender();
+                  }
+                })
+              ]
+            }),
+            x({ tag: Counter }),
+            x({ tag: Counter }),
+            x({
+              alignItems: `center`,
+              justifyContent: `center`,
+              border: `1px solid gray`,
+              children: `x`,
+            }, {
+              onClick: () => {
+                console.log(`delete todo`, todo.id);
+                todos.splice(todos.indexOf(todo), 1);
+                rerender();
+              }
+            })
+          ]
+        }),
+        x({
+          children: [
+            x({ alignSelf: `center`, children: `Notes` }),
+            x({
+              children: todo.notes.map((note, i) => x({ tag: Note }, {
+                key: note.id,
+                note,
+                onNoteChange: (newValue) => {
+                  //todo.notes[i] = { ...note, text: newValue };
+                  todos[this.props.index] = { ...todo, notes: todo.notes.map(n => n.id === note.id ? { ...n, text: newValue } : n) };
+                  rerender();
+                }
+              }))
+            }),
+            x({
+              tag: `button`,
+              alignSelf: `center`,
+              children: `add note`
+            }, {
+              onClick: () => {
+                todos[this.props.index] = { ...todo, notes: [{ id: todo.notes.length, text: `` }] };
+                rerender();
+              }
+            })
+          ]
+        })
+      ]
+    })
+  }
+  shouldComponentUpdate(nextProps) {
+    return nextProps.todo !== this.props.todo;
   }
 }
 
@@ -144,7 +213,7 @@ let App = class extends React.Component {
         x({
           marginTop: `15px`,
           keyed: true,
-          children: todos.map((todo, i) => x({ tag: Todo }, { todo: todo, key: todo.id }))
+          children: todos.map((todo, i) => x({ tag: Todo }, { todo: todo, key: todo.id, index: i }))
         }),
         x({
           marginTop: `10px`,
