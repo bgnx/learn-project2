@@ -2,6 +2,58 @@ let x = ({ tag = "div", children = [], ...styles }, props) => {
   return React.createElement(tag, { ...props, style: styles }, ...children);
 }
 
+let createStore = (reducerFn, initialState) => {
+  let state = initialState;
+  let subs = [];
+  return {
+    subscribe: (fn) => {
+      subs.push(fn);
+      return () => {
+        subs.splice(subs.indexOf(fn), 1)
+      }
+    },
+    dispatch: (action) => {
+      console.log(`dispatch`, action);
+      let newState = reducerFn(state, action);
+      if (newState !== state) {
+        state = newState;
+        subs.forEach(sub => {
+          sub();
+        });
+      }
+    },
+    getState: () => {
+      return state;
+    }
+  }
+}
+
+let connect = (mapStateToProps) => {
+  return (Component) => {
+    return class extends React.Component {
+      _prevProps = undefined;
+      componentDidMount() {
+        store.subscribe(() => {
+          if (this.shouldComponentUpdate(this.props)) {
+            console.log(`forceUpdate`, this);
+            this.forceUpdate();
+          }
+        })
+      }
+      shouldComponentUpdate(nextProps) {
+        if (Object.keys(nextProps).find(key => this.props[key] !== nextProps[key])) return true;
+        let newMapStateToPropsObject = mapStateToProps(store.getState(), this.props);
+        if (Object.keys(newMapStateToPropsObject).find(key => newMapStateToPropsObject[key] !== this._prevProps[key])) return true;
+        return false;
+      }
+      render() {
+        return x({ tag: Component }, { ...this.props, ...(this._prevProps = mapStateToProps(store.getState(), this.props)) })
+      }
+    }
+  }
+}
+
+
 let Checkbox = (obj = {}) => {
   return x({
     ...obj,
@@ -21,17 +73,24 @@ let Input = ({ ...obj } = {}, attrs = {}) => {
   })
 }
 
-let todos = [
-  { id: 0, text: `hello0`, creationTime: Math.random(), components: [], notes: [] },
-  { id: 1, text: `hello1`, creationTime: Math.random(), components: [], notes: [] },
-  { id: 2, text: `hello2`, creationTime: Math.random(), components: [], notes: [] },
-  { id: 3, text: `hello3`, creationTime: Math.random(), components: [], notes: [] },
-  { id: 4, text: `hello4`, creationTime: Math.random(), components: [], notes: [] },
-];
-/* for (let i = 0; i < 1000; i++) {
-  todos.push({ id: todos.length, text: `hello${todos.length}`, creationTime: Math.random(), count: 0, components: [] });
-} */
-let newTodoText = ``;
+let reducer = (state, action) => {
+  if (action.type === `CHANGE_TODO`) {
+    state.todos[action.index] = { ...state.todos[action.index], text: action.newText }
+    return { ...state }
+  }
+}
+let store = createStore(reducer,
+  {
+    newTodoText: ``,
+    todos: [
+      { id: 0, text: `hello0`, creationTime: Math.random(), components: [], notes: [] },
+      { id: 1, text: `hello1`, creationTime: Math.random(), components: [], notes: [] },
+      { id: 2, text: `hello2`, creationTime: Math.random(), components: [], notes: [] },
+      { id: 3, text: `hello3`, creationTime: Math.random(), components: [], notes: [] },
+      { id: 4, text: `hello4`, creationTime: Math.random(), components: [], notes: [] },
+    ]
+  }
+);
 
 let Counter = class extends React.Component {
   state = {
@@ -94,7 +153,11 @@ let Note = class extends React.Component {
   }
 }
 
-let Todo = class extends React.Component {
+let Todo = connect((state, props) => {
+  return {
+    todo: state.todos[props.index]
+  }
+})(class extends React.Component {
   render() {
     let { todo } = this.props;
     return x({
@@ -113,8 +176,7 @@ let Todo = class extends React.Component {
                   value: todo.text,
                   onChange: (e) => {
                     //todo.text = e.target.value;
-                    todos[this.props.index] = { ...todo, text: e.target.value };
-                    rerender();
+                    store.dispatch({ type: `CHANGE_TODO`, newText: e.target.value, index: this.props.index })
                   }
                 })
               ]
@@ -164,16 +226,14 @@ let Todo = class extends React.Component {
       ]
     })
   }
-  shouldComponentUpdate(nextProps) {
-    return nextProps.todo !== this.props.todo;
-  }
-}
+})
 
-let App = class extends React.Component {
+let App = connect((state) => ({ newTodoText: state.newTodoText, todos: state.todos }))(class extends React.Component {
   state = {
     count: 0
   }
   render() {
+    let { newTodoText, todos } = this.props;
     return x({
       flex: 1,
       overflow: `scroll`,
@@ -213,28 +273,17 @@ let App = class extends React.Component {
         x({
           marginTop: `15px`,
           keyed: true,
-          children: todos.map((todo, i) => x({ tag: Todo }, { todo: todo, key: todo.id, index: i }))
+          children: todos.map((todo, i) => x({ tag: Todo }, { key: todo.id, index: i }))
         }),
-        x({
-          marginTop: `10px`,
-          children: [
-            x({
-              children: [
-                x({ children: `sort by creation time` }),
-                x({
-                  children: todos.slice().sort((a, b) => a.creationTime - b.creationTime).map(todo => x({ tag: Todo }, { todo: todo, key: todo.id }))
-                })
-              ]
-            })
-          ]
-        })
       ]
     });
   }
-}
+});
 
 let rerender = () => {
   ReactDOM.render(React.createElement(App), document.body.firstElementChild);
 }
 rerender();
+
+
 
